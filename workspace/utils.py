@@ -88,11 +88,52 @@ def non_maximum_suppression(confidence_, box_, boxs_default, overlap=0.5, thresh
     #depends on your implementation.
     #if you wish to reuse the visualize_pred function above, you need to return a "suppressed" version of confidence [5,5, num_of_classes].
     #you can also directly return the final bounding boxes and classes, and write a new visualization function for that.
-    pass
 
-def generate_mAP():
-    #TODO: Generate mAP
-    pass
+    output = []
+    default_output = []
+    while len(box_) > 0:
+        # 1. Select the bounding box in A with the highest probability in class cat, dog or person.
+        max_ = np.max(confidence_, axis=1)
+
+        # 2. If that highest probability is greater than a threshold (threshold=0.5), proceed; otherwise, the NMS is done.
+        box_ = box_[max_ > threshold]
+        boxs_default = boxs_default[max_ > threshold]
+
+        # 3. Denote the bounding box with the highest probability as x. Move x from A to B.
+        x = box_[np.argmax(max_)]
+        default_ = boxs_default[np.argmax(max_)]
+        output.append(x)
+        default_output.append(default_)
+        box_ = np.delete(box_, np.argmax(max_), axis=0)
+
+        # 4. For all boxes in A, if a box has IOU greater than an overlap threshold (overlap=0.5) with x, remove that box from A.
+        for i in range(len(x)):
+            x_min, y_min, x_max, y_max = x[i]
+            if iou(box_, x_min, y_min, x_max, y_max) > overlap:
+                box_ = np.delete(box_, i, axis=0)
+                boxs_default = np.delete(boxs_default, i, axis=0)
+
+    # concatenate the output
+    output = np.concatenate(output, axis=0)
+    default_output = np.concatenate(default_output, axis=0)
+
+    return output, default_output
+
+
+def generate_mAP(pred_confidence, pred_box, ann_confidence, ann_box):
+    # TODO: Generate mean average precision
+    # Plot the precision-recall curve for each class
+    # Calculate the area under the curve for each class
+    # Return the mean average precision
+
+    # input:
+    # pred_confidence -- the predicted class labels from SSD, [batch_size, num_of_boxes, num_of_classes]
+    # pred_box        -- the predicted bounding boxes from SSD, [batch_size, num_of_boxes, 4]
+    # ann_confidence  -- the ground truth class labels, [batch_size, num_of_boxes, num_of_classes]
+    # ann_box         -- the ground truth bounding boxes, [batch_size, num_of_boxes, 4]
+
+    all_positives = ann_confidence.sum(axis=0)
+
 
 
 

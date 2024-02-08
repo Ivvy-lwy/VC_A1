@@ -203,6 +203,7 @@ class COCO(torch.utils.data.Dataset):
         # For example, point (x=100, y=200) in a image with (width=1000, height=500) will be normalized to (x/width=0.1,y/height=0.4)
 
         image = cv2.imread(img_name)
+        # image_cpy = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
         with open(ann_name, 'r') as f:
             for line in f.readlines():
@@ -213,6 +214,15 @@ class COCO(torch.utils.data.Dataset):
                 x_max = (float(line[1]) + float(line[3])) / image.shape[1]
                 y_max = (float(line[2]) + float(line[4])) / image.shape[0]
                 match(ann_box, ann_confidence, self.boxs_default, self.threshold, class_id, x_min, y_min, x_max, y_max)
+
+                # Visualize the ground truth bounding boxes
+                # cv2.rectangle(image_cpy, (int(x_min * image.shape[1]), int(y_min * image.shape[0])),
+                #               (int(x_max * image.shape[1]), int(y_max * image.shape[0])), (0, 255, 0), 2)
+
+        # Visualize the image, and ground truth bounding boxes
+
+        # plt.imshow(image_cpy)
+        # plt.show()
 
         image = cv2.resize(image, (self.image_size, self.image_size))
         image = image.transpose((2, 0, 1))

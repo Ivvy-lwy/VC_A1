@@ -79,14 +79,12 @@ if not args.test:
         # visualize
         pred_confidence_ = pred_confidence[0].detach().cpu().numpy()
         pred_box_ = pred_box[0].detach().cpu().numpy()
+        breakpoint()
         visualize_pred("train", pred_confidence_, pred_box_, ann_confidence_[0].numpy(), ann_box_[0].numpy(),
                        images_[0].numpy(), boxs_default)
 
         # VALIDATION
         network.eval()
-
-        # TODO: split the dataset into 90% training and 10% validation
-        # use the training set to train and the validation set to evaluate
 
         for i, data in enumerate(dataloader_test, 0):
             images_, ann_box_, ann_confidence_ = data
