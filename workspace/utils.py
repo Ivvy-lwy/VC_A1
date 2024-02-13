@@ -68,10 +68,12 @@ def visualize_pred(windowname, pred_confidence, pred_box, ann_confidence, ann_bo
     image[:h,w:] = image2
     image[h:,:w] = image3
     image[h:,w:] = image4
-    cv2.imshow(windowname+" [[gt_box,gt_dft],[pd_box,pd_dft]]",image)
-    cv2.waitKey(1)
+    # cv2.imshow(windowname+" [[gt_box,gt_dft],[pd_box,pd_dft]]",image)
+    # cv2.waitKey(1)
+
     #if you are using a server, you may not be able to display the image.
     #in that case, please save the image using cv2.imwrite and check the saved image for visualization.
+    cv2.imwrite(windowname+" [[gt_box,gt_dft],[pd_box,pd_dft]].jpg",image)
 
 
 

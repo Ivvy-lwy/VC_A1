@@ -66,7 +66,7 @@ class SSD(nn.Module):
         # TODO: define layers
         self.conv1 = ConvBlock(3, 64, 3, 2, 1)
         self.conv2 = ConvBlock(64, 64, 3, 1, 1)
-        self.con2_2 = ConvBlock(64, 64, 3, 1, 1)
+        self.conv2_2 = ConvBlock(64, 64, 3, 1, 1)
         self.conv3 = ConvBlock(64, 128, 3, 2, 1)
         self.conv4 = ConvBlock(128, 128, 3, 1, 1)
         self.conv4_2 = ConvBlock(128, 128, 3, 1, 1)
@@ -128,12 +128,12 @@ class SSD(nn.Module):
         # branch 1
         branch1_1 = self.branch1_conv1(x)
         # reshape branch1 from [batch_size, 16, 10, 10] to [batch_size, 16, 10*10]
-        branch1_1 = branch1_1.view(branch1_1.size(0), branch1_1.size(1), -1)
+        branch1_1 = branch1_1.reshape(branch1_1.size(0), branch1_1.size(1), -1)
 
         # branch 2
         branch2_1 = self.branch2_conv1(x)
         # reshape branch2 from [batch_size, 16, 5, 5] to [batch_size, 16, 5*5]
-        branch2_1 = branch2_1.view(branch2_1.size(0), branch2_1.size(1), -1)
+        branch2_1 = branch2_1.reshape(branch2_1.size(0), branch2_1.size(1), -1)
 
         # main branch
         x2 = self.conv12(x1)
@@ -141,11 +141,11 @@ class SSD(nn.Module):
 
         # branch 1
         branch1_2 = self.branch1_conv2(x1)
-        branch1_2 = branch1_2.view(branch1_2.size(0), branch1_2.size(1), -1)
+        branch1_2 = branch1_2.reshape(branch1_2.size(0), branch1_2.size(1), -1)
 
         # branch 2
         branch2_2 = self.branch2_conv2(x1)
-        branch2_2 = branch2_2.view(branch2_2.size(0), branch2_2.size(1), -1)
+        branch2_2 = branch2_2.reshape(branch2_2.size(0), branch2_2.size(1), -1)
 
         # main branch
         x3 = self.conv14(x2)
@@ -153,28 +153,28 @@ class SSD(nn.Module):
 
         # branch 1
         branch1_3 = self.branch1_conv3(x2)
-        branch1_3 = branch1_3.view(branch1_3.size(0), branch1_3.size(1), -1)
+        branch1_3 = branch1_3.reshape(branch1_3.size(0), branch1_3.size(1), -1)
 
         # branch 2
         branch2_3 = self.branch2_conv3(x2)
-        branch2_3 = branch2_3.view(branch2_3.size(0), branch2_3.size(1), -1)
+        branch2_3 = branch2_3.reshape(branch2_3.size(0), branch2_3.size(1), -1)
 
         # branch 1
         branch1_4 = self.branch1_conv4(x3)
-        branch1_4 = branch1_4.view(branch1_4.size(0), branch1_4.size(1), -1)
+        branch1_4 = branch1_4.reshape(branch1_4.size(0), branch1_4.size(1), -1)
 
         # branch 2
         branch2_4 = self.branch2_conv4(x3)
-        branch2_4 = branch2_4.view(branch2_4.size(0), branch2_4.size(1), -1)
+        branch2_4 = branch2_4.reshape(branch2_4.size(0), branch2_4.size(1), -1)
 
         # concatenate the branches
         branch1 = torch.cat((branch1_1, branch1_2, branch1_3, branch1_4), dim=2)
         branch1 = branch1.permute(0, 2, 1)
-        bboxes = branch1.view(branch1.size(0), -1, 4)
+        bboxes = branch1.reshape(branch1.size(0), -1, 4)
 
         branch2 = torch.cat((branch2_1, branch2_2, branch2_3, branch2_4), dim=2)
         branch2 = branch2.permute(0, 2, 1)
-        branch2 = branch2.view(branch2.size(0), -1, 4)
+        branch2 = branch2.reshape(branch2.size(0), -1, 4)
         confidence = self.softmax(branch2)
 
         # should you apply softmax to confidence? (search the pytorch tutorial for F.cross_entropy.) If yes, which dimension should you apply softmax?
@@ -182,7 +182,7 @@ class SSD(nn.Module):
         # sanity check: print the size/shape of the confidence and bboxes, make sure they are as follows:
         # confidence - [batch_size,4*(10*10+5*5+3*3+1*1),num_of_classes]
         # bboxes - [batch_size,4*(10*10+5*5+3*3+1*1),4]
-        print('bboxes:', bboxes.size())
-        print('confidence:', confidence.size())
+        # print('bboxes:', bboxes.size())
+        # print('confidence:', confidence.size())
 
         return confidence, bboxes
