@@ -77,11 +77,13 @@ if not args.test:
         print('[%d] time: %f train loss: %f' % (epoch, time.time() - start_time, avg_loss / avg_count))
 
         # visualize
-        pred_confidence_ = pred_confidence[0].detach().cpu().numpy()
-        pred_box_ = pred_box[0].detach().cpu().numpy()
-        breakpoint()
+        pred_confidence_ = pred_confidence[0].detach().cpu().numpy()    # [540, 4]
+        pred_box_ = pred_box[0].detach().cpu().numpy()                # [540, 4]
+        # ann_confidence_, ann_box_ [24, 540, 4]
+        # images_ [24, 3, 320, 320]
         visualize_pred("train", pred_confidence_, pred_box_, ann_confidence_[0].numpy(), ann_box_[0].numpy(),
                        images_[0].numpy(), boxs_default)
+        # breakpoint()
 
         # VALIDATION
         network.eval()

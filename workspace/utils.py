@@ -40,17 +40,30 @@ def visualize_pred(windowname, pred_confidence, pred_box, ann_confidence, ann_bo
     for i in range(len(ann_confidence)):
         for j in range(class_num):
             if ann_confidence[i,j]>0.5: #if the network/ground_truth has high confidence on cell[i] with class[j]
-                #TODO:
+                # TODO:
                 #image1: draw ground truth bounding boxes on image1
+                relative_x, relative_y, relative_w, relative_h = ann_box[i]
+                default_x, default_y, default_w, default_h = boxs_default[i][0:4]
+                gt_x = relative_x * default_w + default_x
+                gt_y = relative_y * default_h + default_y
+                gt_w = default_w * np.exp(relative_w)
+                gt_h = default_h * np.exp(relative_h)
+                x1 = int((gt_x - gt_w/2)*image.shape[1])
+                y1 = int((gt_y - gt_h/2)*image.shape[0])
+                x2 = int((gt_x + gt_w/2)*image.shape[1])
+                y2 = int((gt_y + gt_h/2)*image.shape[0])
+                color = colors[j] #use red green blue to represent different classes
+                thickness = 2
+                image1 = cv2.rectangle(image1, (x1, y1), (x2, y2), color, thickness)
+
                 #image2: draw ground truth "default" boxes on image2 (to show that you have assigned the object to the correct cell/cells)
-                
-                #you can use cv2.rectangle as follows:
-                #start_point = (x1, y1) #top left corner, x1<x2, y1<y2
-                #end_point = (x2, y2) #bottom right corner
-                #color = colors[j] #use red green blue to represent different classes
-                #thickness = 2
-                #cv2.rectangle(image?, start_point, end_point, color, thickness)
-                   pass
+                default_x1, default_y1, default_x2, default_y2 = boxs_default[i][4:8]
+                default_x1 = int(default_x1*image.shape[1])
+                default_y1 = int(default_y1*image.shape[0])
+                default_x2 = int(default_x2*image.shape[1])
+                default_y2 = int(default_y2*image.shape[0])
+                image2 = cv2.rectangle(image2, (default_x1, default_y1), (default_x2, default_y2), color, thickness)
+
     
     #pred
     for i in range(len(pred_confidence)):
@@ -58,9 +71,28 @@ def visualize_pred(windowname, pred_confidence, pred_box, ann_confidence, ann_bo
             if pred_confidence[i,j]>0.5:
                 #TODO:
                 #image3: draw network-predicted bounding boxes on image3
-                #image4: draw network-predicted "default" boxes on image4 (to show which cell does your network think that contains an object)
-                pass
-    
+                relative_x, relative_y, relative_w, relative_h = pred_box[i]
+                default_x, default_y, default_w, default_h = boxs_default[i][0:4]
+                pd_x = relative_x * default_w + default_x
+                pd_y = relative_y * default_h + default_y
+                pd_w = default_w * np.exp(relative_w)
+                pd_h = default_h * np.exp(relative_h)
+                x1 = int((pd_x - pd_w/2)*image.shape[1])
+                y1 = int((pd_y - pd_h/2)*image.shape[0])
+                x2 = int((pd_x + pd_w/2)*image.shape[1])
+                y2 = int((pd_y + pd_h/2)*image.shape[0])
+                color = colors[j]
+                thickness = 2
+                image3 = cv2.rectangle(image3, (x1, y1), (x2, y2), color, thickness)
+
+                # image4: draw network-predicted "default" boxes on image4 (to show which cell does your network think that contains an object)
+                default_x1, default_y1, default_x2, default_y2 = boxs_default[i][4:8]
+                default_x1 = int(default_x1*image.shape[1])
+                default_y1 = int(default_y1*image.shape[0])
+                default_x2 = int(default_x2*image.shape[1])
+                default_y2 = int(default_y2*image.shape[0])
+                image4 = cv2.rectangle(image4, (default_x1, default_y1), (default_x2, default_y2), color, thickness)
+
     #combine four images into one
     h,w,_ = image1.shape
     image = np.zeros([h*2,w*2,3], np.uint8)
