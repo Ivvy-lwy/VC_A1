@@ -1,5 +1,7 @@
 import numpy as np
 import cv2
+from matplotlib import pyplot as plt
+
 from dataset import iou
 
 
@@ -105,7 +107,7 @@ def visualize_pred(windowname, pred_confidence, pred_box, ann_confidence, ann_bo
 
     #if you are using a server, you may not be able to display the image.
     #in that case, please save the image using cv2.imwrite and check the saved image for visualization.
-    cv2.imwrite(windowname+" [[gt_box,gt_dft],[pd_box,pd_dft]].jpg",image)
+    cv2.imwrite(windowname+".jpg",image)
 
 
 
@@ -124,49 +126,103 @@ def non_maximum_suppression(confidence_, box_, boxs_default, overlap=0.5, thresh
     #you can also directly return the final bounding boxes and classes, and write a new visualization function for that.
 
     output = []
+    output_confidence = []
     default_output = []
+    ids = []
     while len(box_) > 0:
         # 1. Select the bounding box in A with the highest probability in class cat, dog or person.
         max_ = np.max(confidence_, axis=1)
 
         # 2. If that highest probability is greater than a threshold (threshold=0.5), proceed; otherwise, the NMS is done.
-        box_ = box_[max_ > threshold]
-        boxs_default = boxs_default[max_ > threshold]
+        box_high = box_[max_ > threshold]
+
+        if len(box_high) == 0:
+            break
 
         # 3. Denote the bounding box with the highest probability as x. Move x from A to B.
-        x = box_[np.argmax(max_)]
-        default_ = boxs_default[np.argmax(max_)]
-        output.append(x)
+        max_id = np.argmax(max_)
+        ids.append(max_id)
+        x_high = box_[max_id]
+        default_ = boxs_default[max_id]
+        output.append(x_high)
         default_output.append(default_)
-        box_ = np.delete(box_, np.argmax(max_), axis=0)
+        box_ = np.delete(box_, max_id, axis=0)
+        boxs_default = np.delete(boxs_default, max_id, axis=0)
+
+        conf = confidence_[np.argmax(max_)]
+        output_confidence.append(conf)
+        confidence_ = np.delete(confidence_, max_id, axis=0)
 
         # 4. For all boxes in A, if a box has IOU greater than an overlap threshold (overlap=0.5) with x, remove that box from A.
-        for i in range(len(x)):
-            x_min, y_min, x_max, y_max = x[i]
-            if iou(box_, x_min, y_min, x_max, y_max) > overlap:
-                box_ = np.delete(box_, i, axis=0)
-                boxs_default = np.delete(boxs_default, i, axis=0)
+        # breakpoint()
+        x, y, w, h = default_[0:4]
+        x_min = x - w / 2
+        y_min = y - h / 2
+        x_max = x + w / 2
+        y_max = y + h / 2
+        ious = iou(boxs_default, x_min, y_min, x_max, y_max)
+        # delete the boxes with iou > overlap
+        box_ = np.delete(box_, np.where(ious > overlap), axis=0)
+        confidence_ = np.delete(confidence_, np.where(ious > overlap), axis=0)
+        boxs_default = np.delete(boxs_default, np.where(ious > overlap), axis=0)
 
     # concatenate the output
+    if len(output) == 0:
+        print("No bounding box found")
+        # breakpoint()
+        return np.array([]), np.array([]), np.array([]), np.array([])
     output = np.concatenate(output, axis=0)
     default_output = np.concatenate(default_output, axis=0)
+    output_confidence = np.concatenate(output_confidence, axis=0)
+    ids = np.array(ids)
 
-    return output, default_output
+    return output, default_output, output_confidence, ids
 
 
-def generate_mAP(pred_confidence, pred_box, ann_confidence, ann_box):
+def update_precision_recall(pred_confidence_, pred_box_, ann_confidence_, ann_box_, boxs_default,thres):
+    """Update the precision and recall for each class"""
+    true_positive = 0
+    false_positive = 0
+    false_negative = 0
+    for i in range(len(pred_confidence_)):
+        pred_confidence = pred_confidence_[i]
+        pred_box = pred_box_[i]
+        ann_confidence = ann_confidence_[i]
+        ann_box = ann_box_[i]
+
+        pred_box, default_box, pred_confidence, ids = non_maximum_suppression(pred_confidence, pred_box, boxs_default, threshold=thres)
+        for j in range(len(ids)):
+            # TODO: compare default with ann_box (don't know index in ann_box)
+            x, y, w, h = ann_box[j].flatten()
+            x_min = x - w / 2
+            y_min = y - h / 2
+            x_max = x + w / 2
+            y_max = y + h / 2
+            default_box = default_box.reshape(-1, 8)
+            ious = iou(default_box, x_min, y_min, x_max, y_max)
+            true_positive += np.sum(ious > thres)
+            false_positive += len(ious) - true_positive
+        false_negative += len(np.where(ann_confidence>0)) - true_positive
+
+    recall = true_positive / (true_positive + false_negative)
+    precision = true_positive / (true_positive + false_positive)
+    return precision, recall
+
+
+def generate_mAP(precision, recall, epoch):
     # TODO: Generate mean average precision
     # Plot the precision-recall curve for each class
     # Calculate the area under the curve for each class
     # Return the mean average precision
 
-    # input:
-    # pred_confidence -- the predicted class labels from SSD, [batch_size, num_of_boxes, num_of_classes]
-    # pred_box        -- the predicted bounding boxes from SSD, [batch_size, num_of_boxes, 4]
-    # ann_confidence  -- the ground truth class labels, [batch_size, num_of_boxes, num_of_classes]
-    # ann_box         -- the ground truth bounding boxes, [batch_size, num_of_boxes, 4]
+    # Plot the precision-recall curve for each class
+    # Store the plot as a .png file
+    plt.plot(recall, precision)
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.title('Precision-Recall Curve')
+    plt.savefig('precision_recall_curve_epoch_{}.png'.format(epoch))
 
-    all_positives = ann_confidence.sum(axis=0)
 
 
 

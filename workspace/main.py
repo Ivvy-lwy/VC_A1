@@ -31,7 +31,7 @@ args = parser.parse_args()
 class_num = 4  # cat dog person background
 
 num_epochs = 100
-batch_size = 32
+batch_size = 2
 
 boxs_default = default_box_generator([10, 5, 3, 1], [0.2, 0.4, 0.6, 0.8], [0.1, 0.3, 0.5, 0.7])
 
@@ -56,6 +56,7 @@ if not args.test:
     for epoch in range(num_epochs):
         # TRAINING
         network.train()
+        print('epoch: %d' % epoch)
 
         avg_loss = 0
         avg_count = 0
@@ -81,12 +82,14 @@ if not args.test:
         pred_box_ = pred_box[0].detach().cpu().numpy()                # [540, 4]
         # ann_confidence_, ann_box_ [24, 540, 4]
         # images_ [24, 3, 320, 320]
-        visualize_pred("train", pred_confidence_, pred_box_, ann_confidence_[0].numpy(), ann_box_[0].numpy(),
+        visualize_pred("train_epoch{}".format(epoch), pred_confidence_, pred_box_, ann_confidence_[0].numpy(), ann_box_[0].numpy(),
                        images_[0].numpy(), boxs_default)
         # breakpoint()
 
         # VALIDATION
         network.eval()
+        precisions = []
+        recalls = []
 
         for i, data in enumerate(dataloader_test, 0):
             images_, ann_box_, ann_confidence_ = data
@@ -100,17 +103,25 @@ if not args.test:
             pred_box_ = pred_box.detach().cpu().numpy()
 
             # optional: implement a function to accumulate precision and recall to compute mAP or F1.
-            # update_precision_recall(pred_confidence_, pred_box_, ann_confidence_.numpy(), ann_box_.numpy(), boxs_default,precision_,recall_,thres)
+            # precision_, recall_ = update_precision_recall(pred_confidence_, pred_box_, ann_confidence_.numpy(), ann_box_.numpy(), boxs_default,thres=0.5)
+            # precisions.append(precision_)
+            # recalls.append(recall_)
 
         # visualize
         pred_confidence_ = pred_confidence[0].detach().cpu().numpy()
         pred_box_ = pred_box[0].detach().cpu().numpy()
-        visualize_pred("val", pred_confidence_, pred_box_, ann_confidence_[0].numpy(), ann_box_[0].numpy(),
+        # TODO: non-maximum suppression
+        # suppressed_box, suppressed_defalut_box, suppressed_conf, ids = non_maximum_suppression(pred_confidence_, pred_box_, boxs_default, 0.5)
+        # visualize_pred("val_suppressed_epoch{}".format(epoch), suppressed_conf, suppressed_box, ann_confidence_[0].numpy(), ann_box_[0].numpy(),
+        #                images_[0].numpy(), suppressed_defalut_box)
+        visualize_pred("val_epoch{}".format(epoch), pred_confidence_, pred_box_, ann_confidence_[0].numpy(), ann_box_[0].numpy(),
                        images_[0].numpy(), boxs_default)
+        # generate_mAP(precisions, recalls, epoch)
 
         # optional: compute F1
         # F1score = 2*precision*recall/np.maximum(precision+recall,1e-8)
         # print(F1score)
+        # plot precision and recall
 
         # save weights
         if epoch % 10 == 9:
@@ -138,11 +149,13 @@ else:
         pred_confidence_ = pred_confidence[0].detach().cpu().numpy()
         pred_box_ = pred_box[0].detach().cpu().numpy()
 
-        # pred_confidence_,pred_box_ = non_maximum_suppression(pred_confidence_,pred_box_,boxs_default)
-
         # TODO: save predicted bounding boxes and classes to a txt file.
         # you will need to submit those files for grading this assignment
 
-        visualize_pred("test", pred_confidence_, pred_box_, ann_confidence_[0].numpy(), ann_box_[0].numpy(),
+        # TODO: non-maximum suppression
+        # suppressed_box, suppressed_defalut_box, suppressed_conf, ids = non_maximum_suppression(pred_confidence_, pred_box_, boxs_default, 0.5)
+        # visualize_pred("test_{}".format(i), suppressed_conf, suppressed_box, ann_confidence_[0].numpy(), ann_box_[0].numpy(),
+        #                images_[0].numpy(), suppressed_defalut_box)
+        visualize_pred("train_epoch{}".format(i), pred_confidence_, pred_box_, ann_confidence_[0].numpy(), ann_box_[0].numpy(),
                        images_[0].numpy(), boxs_default)
         cv2.waitKey(1000)
